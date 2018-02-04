@@ -403,8 +403,12 @@ namespace Square.Connect.Test
             Assert.IsNotNull(resp);
             Assert.AreEqual(coffee.Type, resp._Object.Type);
             Assert.AreEqual(idMap[COFFEE_ID], resp._Object.Id);
-            Assert.IsNotNullOrEmpty(resp._Object.UpdatedAt);
-            Assert.AreNotEqual(0, resp._Object.Version);
+
+			Assert.IsNotNull(resp._Object.UpdatedAt);
+			Assert.IsNotEmpty(resp._Object.UpdatedAt);
+			//Assert.IsNotNullOrEmpty(resp._Object.UpdatedAt);
+
+			Assert.AreNotEqual(0, resp._Object.Version);
             Assert.IsFalse(resp._Object.IsDeleted.Value);
             Assert.AreEqual(coffee.ItemData.Name, resp._Object.ItemData.Name);
             Assert.AreEqual(coffee.ItemData.Variations.Count, resp._Object.ItemData.Variations.Count);
@@ -424,8 +428,12 @@ namespace Square.Connect.Test
             Assert.IsNotNull(resp);
             Assert.AreEqual(salesTax.Type, resp._Object.Type);
             Assert.AreEqual(idMap[SALES_TAX_ID], resp._Object.Id);
-            Assert.IsNotNullOrEmpty(resp._Object.UpdatedAt);
-            Assert.AreNotEqual(0, resp._Object.Version);
+
+            Assert.IsNotNull(resp._Object.UpdatedAt);
+			Assert.IsNotEmpty(resp._Object.UpdatedAt);
+			//Assert.IsNotNullOrEmpty(resp._Object.UpdatedAt);
+
+			Assert.AreNotEqual(0, resp._Object.Version);
             Assert.IsFalse(resp._Object.IsDeleted.Value);
             Assert.AreEqual(salesTax.TaxData.Name, resp._Object.TaxData.Name);
             Assert.IsNull(resp._Object.ItemData);
