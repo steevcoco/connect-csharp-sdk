@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Http;
@@ -9,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Square.Connect.Api;
 
 
 namespace Square.Connect.Model
@@ -207,6 +209,99 @@ namespace Square.Connect.Model
 
 
 		/// <summary>
+		/// Set only when <see cref="TryRetrieveAsync"/> is invoked.
+		/// </summary>
+		[DataMember]
+		public string RetrievedTransactionId { get; private set; }
+
+		/// <summary>
+		/// Set only when <see cref="TryRetrieveAsync"/> is invoked.
+		/// </summary>
+		[DataMember]
+		public string RetrievedOrderId { get; private set; }
+
+		/// <summary>
+		/// Set only when <see cref="TryRetrieveAsync"/> is invoked.
+		/// </summary>
+		[DataMember]
+		public string RetrievedCustomerId { get; private set; }
+
+		/// <summary>
+		/// Convenience property returns whether either <see cref="RetrievedTransactionId"/>
+		/// <see cref="RetrievedOrderId"/>, or <see cref="RetrievedCustomerId"/> is set.
+		/// </summary>
+		public (bool transaction, bool order, bool customer) IsRetrieved
+			=> (!string.IsNullOrWhiteSpace(RetrievedTransactionId),
+					!string.IsNullOrWhiteSpace(RetrievedOrderId),
+					!string.IsNullOrWhiteSpace(RetrievedCustomerId));
+
+		/// <summary>
+		/// Will look up this <see cref="EntityId"/>, and retrieve the associated
+		/// <see cref="Transaction"/>, that transaction's <see cref="Tender"/>, the <see cref="Order"/>,
+		/// and the <see cref="Customer"/>. The method may not retrieve all elements: you must test
+		/// each for null.
+		/// </summary>
+		/// <param name="squareTransactionsApi">Required.</param>
+		/// <param name="squareOrdersApi">Required.</param>
+		/// <param name="squareCustomersApi">Required.</param>
+		/// <param name="transactionWindowInDays">Sets the <c>beginTime</c> for the
+		/// <see cref="TransactionsApi"/> query on this <see cref="EntityId"/>.</param>
+		/// <returns>True if all out arguments are found.</returns>
+		public async Task<(Transaction transaction, Tender tender, Order order, Customer customer)> TryRetrieveAsync(
+				TransactionsApi squareTransactionsApi,
+				OrdersApi squareOrdersApi,
+				CustomersApi squareCustomersApi,
+				double transactionWindowInDays = 2D)
+		{
+			string cursor = null;
+			string beginTime
+					= DateTime.UtcNow.AddDays(
+									transactionWindowInDays < 0D
+											? transactionWindowInDays
+											: -transactionWindowInDays)
+							.ToString("O");
+			string endTime
+					= DateTime.UtcNow.AddDays(3D)
+							.ToString("O");
+			do {
+				ListTransactionsResponse transactionsResponse
+						= await squareTransactionsApi.ListTransactionsAsync(
+								LocationId,
+								beginTime,
+								endTime,
+								null,
+								cursor);
+				foreach (Transaction transaction in transactionsResponse.Transactions) {
+					foreach (Tender tender in transaction.Tenders) {
+						if (!string.Equals(EntityId, tender.Id, StringComparison.InvariantCultureIgnoreCase))
+							continue;
+						RetrievedTransactionId = transaction.Id;
+						Order order
+								= !string.IsNullOrWhiteSpace(transaction.OrderId)
+										? (await squareOrdersApi.BatchRetrieveOrdersAsync(
+												LocationId,
+												new BatchRetrieveOrdersRequest(
+														new List<string>
+														{
+															transaction.OrderId
+														}))).Orders.FirstOrDefault()
+										: null;
+						RetrievedOrderId = order?.Id;
+						Customer customer
+								= !string.IsNullOrWhiteSpace(tender.CustomerId)
+										? (await squareCustomersApi.RetrieveCustomerAsync(tender.CustomerId)).Customer
+										: null;
+						RetrievedCustomerId = customer?.Id;
+						return (transaction, tender, order, customer);
+					}
+				}
+				cursor = transactionsResponse.Cursor;
+			} while (!string.IsNullOrEmpty(cursor));
+			return (null, null, null, null);
+		}
+
+
+		/// <summary>
 		/// Our database Id. This will be set to the <see cref="EntityId"/> in this constructor;
 		/// and could be explicitly set in the database that way to enable better tracking of unique
 		/// events.
@@ -287,6 +382,6 @@ namespace Square.Connect.Model
 					&& (IsSquareSignatureValid == other.IsSquareSignatureValid);
 
 		public override string ToString()
-			=> $"{GetType() .Name} {JsonConvert.SerializeObject(this)}";
+			=> $"{GetType().Name} {JsonConvert.SerializeObject(this)}";
 	}
 }
