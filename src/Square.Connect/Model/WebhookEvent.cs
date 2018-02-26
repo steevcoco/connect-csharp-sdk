@@ -16,6 +16,7 @@ namespace Square.Connect.Model
 	/// <summary>
 	/// Encapsulates the event sent by a Square Webhook.
 	/// </summary>
+	[DataContract]
 	public class WebhookEvent
 			: IEquatable<WebhookEvent>
 	{
@@ -27,10 +28,10 @@ namespace Square.Connect.Model
 			=> "X-Square-Signature";
 
 		/// <summary>
-		/// Is an encoding with no BOM, and riases exceptions on bad formats.
+		/// Is a mnew encoding with no BOM, and riases exceptions on bad formats.
 		/// </summary>
-		public static readonly UTF8Encoding Utf8
-				= new UTF8Encoding(false, true);
+		public static UTF8Encoding Utf8
+			=> new UTF8Encoding(false, true);
 
 		/// <summary>
 		/// Utility method marshalls the given <see cref="SecureString"/> TO PLAIN TEXT now.
@@ -50,13 +51,14 @@ namespace Square.Connect.Model
 		/// <param name="squareSignatureKey">The Squate signature key ---  this will be disposed here
 		/// now.</param>
 		/// <returns>Not null.</returns>
-		public static async Task<WebhookEvent> ParseAsync(
+		public static async Task<T> ParseAsync<T>(
 				HttpRequestMessage httpRequestMessage,
 				SecureString squareSignatureKey)
+				where T : WebhookEvent, new()
 		{
 			if (httpRequestMessage == null)
 				throw new ArgumentNullException(nameof(httpRequestMessage));
-			return WebhookEvent.Parse(
+			return WebhookEvent.Parse<T>(
 					await httpRequestMessage.Content.ReadAsStringAsync(),
 					httpRequestMessage.RequestUri.ToString(),
 					httpRequestMessage.Headers.GetValues(WebhookEvent.SquareSignatureHeaderName)
@@ -74,29 +76,32 @@ namespace Square.Connect.Model
 		/// <param name="squareSignatureKey">The Squate signature key ---  this will be disposed here
 		/// now.</param>
 		/// <returns>Not null.</returns>
-		public static WebhookEvent Parse(
+		public static T Parse<T>(
 				string requestBody,
 				string webhookNotificationUrl,
 				string squareSignature,
 				SecureString squareSignatureKey)
+				where T : WebhookEvent, new()
 		{
 			dynamic requestData = JsonConvert.DeserializeObject(requestBody);
-			string id = requestData?.entity_id?.ToString();
+			string entityId = requestData?.entity_id?.ToString();
 			string locationId = requestData?.location_id?.ToString();
 			string merchantId = requestData?.merchant_id?.ToString();
 			string eventType = requestData?.event_type?.ToString();
-			return new WebhookEvent(
-					id,
-					id,
-					locationId,
-					merchantId,
-					eventType,
-					squareSignature,
-					WebhookEvent.VerifySignature(
-							requestBody,
-							webhookNotificationUrl,
-							squareSignature,
-							squareSignatureKey));
+			return new T
+			{
+				Id = entityId,
+				EntityId = entityId,
+				LocationId = locationId,
+				MerchantId = merchantId,
+				EventType = eventType,
+				SquareSignature = squareSignature,
+				IsSquareSignatureValid = WebhookEvent.VerifySignature(
+						requestBody,
+						webhookNotificationUrl,
+						squareSignature,
+						squareSignatureKey),
+			};
 		}
 
 		/// <summary>
@@ -168,7 +173,13 @@ namespace Square.Connect.Model
 
 
 		/// <summary>
-		/// Constructor.
+		/// Default constructor: will set <see cref="CreatedAtUtc"/>.
+		/// </summary>
+		public WebhookEvent()
+			=> CreatedAtUtc = DateTime.UtcNow;
+
+		/// <summary>
+		/// Constructor: will set <see cref="CreatedAtUtc"/>.
 		/// </summary>
 		/// <param name="id">NOT tested.</param>
 		/// <param name="entityId">NOT tested.</param>
@@ -177,7 +188,7 @@ namespace Square.Connect.Model
 		/// <param name="eventType">NOT tested.</param>
 		/// <param name="squareSignature">NOT tested.</param>
 		/// <param name="isSquareSignatureValid">NOT tested.</param>
-		private WebhookEvent(
+		public WebhookEvent(
 				string id,
 				string entityId,
 				string locationId,
@@ -185,6 +196,7 @@ namespace Square.Connect.Model
 				string eventType,
 				string squareSignature,
 				bool isSquareSignatureValid)
+				: this()
 		{
 			Id = id;
 			EntityId = entityId;
@@ -193,7 +205,6 @@ namespace Square.Connect.Model
 			EventType = eventType;
 			SquareSignature = squareSignature;
 			IsSquareSignatureValid = isSquareSignatureValid;
-			CreatedAtUtc = DateTime.UtcNow;
 		}
 
 
