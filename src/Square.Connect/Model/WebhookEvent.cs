@@ -173,13 +173,12 @@ namespace Square.Connect.Model
 
 
 		/// <summary>
-		/// Default constructor: will set <see cref="CreatedAtUtc"/>.
+		/// Default constructor: sets nothing.
 		/// </summary>
-		public WebhookEvent()
-			=> CreatedAtUtc = DateTime.UtcNow;
+		public WebhookEvent() { }
 
 		/// <summary>
-		/// Constructor: will set <see cref="CreatedAtUtc"/>.
+		/// Constructor.
 		/// </summary>
 		/// <param name="id">NOT tested.</param>
 		/// <param name="entityId">NOT tested.</param>
@@ -196,7 +195,6 @@ namespace Square.Connect.Model
 				string eventType,
 				string squareSignature,
 				bool isSquareSignatureValid)
-				: this()
 		{
 			Id = id;
 			EntityId = entityId;
@@ -206,13 +204,6 @@ namespace Square.Connect.Model
 			SquareSignature = squareSignature;
 			IsSquareSignatureValid = isSquareSignatureValid;
 		}
-
-
-		/// <summary>
-		/// Set when constructed.
-		/// </summary>
-		[DataMember]
-		public DateTime CreatedAtUtc { get; private set; }
 
 
 		/// <summary>
