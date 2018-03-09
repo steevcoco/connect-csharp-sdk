@@ -5,7 +5,7 @@ I have simply forked Square's repository in order to make a build that has NetSt
 
 There is also another branch here: my main branch references Newtonsoft.Json 10.0.3. And there is a branch that simply targets Newtonsoft.Json 9.0.1. No changes in that branch except the Newtonsoft reference. (Made because some Azure libraries are in upheaval with differing Newtonsoft references ...)
 
-I did also add a WebhookEvent class to the model.
+I did also add a [WebhookEvent](https://github.com/steevcoco/connect-csharp-sdk/blob/master/src/Square.Connect/Model/WebhookEvent.cs) class to the model to parse and verify Webhook events.
 
 ----
 
