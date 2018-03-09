@@ -1,3 +1,14 @@
+About This Fork:
+==================
+
+I have simply forked Square's repository in order to make a build that has NetStandard 2.0 project and solution files. The code changes are very minimal; and this essentially has nothing more than new project and solution files. It builds as NetStandard to ease compatibility with other NetStandard projects ... And functionally is no different.
+
+There is also another branch here: my main branch references Newtonsoft.Json 10.0.3. And there is a branch that simply targets Newtonsoft.Json 9.0.1. No changes in that branch except the Newtonsoft reference. (Made because some Azure libraries are in upheaval with differing Newtonsoft references ...)
+
+I did also add a [WebhookEvent](https://github.com/steevcoco/connect-csharp-sdk/blob/master/src/Square.Connect/Model/WebhookEvent.cs) class to the model to parse and verify Webhook events.
+
+----
+
 Square Connect C# SDK [![Build Status](https://travis-ci.org/square/connect-csharp-sdk.svg?branch=master)](https://travis-ci.org/square/connect-csharp-sdk)[![NuGet version](https://badge.fury.io/nu/Square.Connect.svg)](https://badge.fury.io/nu/Square.Connect)
 ==================
 

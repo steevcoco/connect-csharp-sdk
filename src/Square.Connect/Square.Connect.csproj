@@ -1,34 +1,37 @@
 <Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <Product>Square_Connect_V2_SDK</Product>
-    <Copyright>Copyright 2017 Square, Inc.</Copyright>
-    <Authors>Square, Inc.</Authors>
-    <Company>Square, Inc.</Company>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-	<PackageLicenseUrl>https://github.com/square/connect-csharp-sdk/blob/master/LICENSE</PackageLicenseUrl>
-	<iconUrl>https://avatars2.githubusercontent.com/u/82592</iconUrl>
-	<AssemblyVersion>2.6.2.0</AssemblyVersion>
-	<FileVersion>2.6.2.0</FileVersion>
-	<Version>2.6.2</Version>
-	<IncludeSource>True</IncludeSource>
-  </PropertyGroup>
+		<Product>Square_Connect_V2_SDK</Product>
+		<Copyright>Copyright 2017 Square, Inc.</Copyright>
+		<Authors>Square, Inc.</Authors>
+		<Company>Square, Inc.</Company>
+		<PackageLicenseUrl>https://github.com/square/connect-csharp-sdk/blob/master/LICENSE</PackageLicenseUrl>
+		<iconUrl>https://avatars2.githubusercontent.com/u/82592</iconUrl>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <LangVersion>latest</LangVersion>
-  </PropertyGroup>
+		<AssemblyVersion>2.6.2.1</AssemblyVersion>
+		<FileVersion>2.6.2.1</FileVersion>
+		<Version>2.6.2.1</Version>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <LangVersion>latest</LangVersion>
-    <DocumentationFile>bin\Release\netstandard2.0\Square.Connect.xml</DocumentationFile>
-  </PropertyGroup>
+		<LangVersion>latest</LangVersion>
+		<AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
+		<RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="RestSharp" Version="106.2.1" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="4.4.1" />
-  </ItemGroup>
+	<PropertyGroup>
+		<GenerateDocumentationFile Condition="'$(Configuration)'=='Release'">True</GenerateDocumentationFile>
+		<GeneratePackageOnBuild Condition="'$(Configuration)'=='Release'">True</GeneratePackageOnBuild>
+		<IncludeSource Condition="'$(Configuration)'=='Release'">True</IncludeSource>
+		<AllowedOutputExtensionsInPackageBuildOutputFolder>.dll;.pdb;.xml</AllowedOutputExtensionsInPackageBuildOutputFolder>
+	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json"
+				Version="10.0.3"/>
+		<PackageReference Include="RestSharp"
+				Version="106.2.1"/>
+		<PackageReference Include="System.ComponentModel.Annotations"
+				Version="4.4.1"/>
+	</ItemGroup>
 </Project>

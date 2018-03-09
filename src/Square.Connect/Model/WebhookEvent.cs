@@ -14,7 +14,8 @@ using Newtonsoft.Json;
 namespace Square.Connect.Model
 {
 	/// <summary>
-	/// Encapsulates the event sent by a Square Webhook.
+	/// Encapsulates the event sent by a Square Webhook. Use the static methods to
+	/// parse and verify an event.
 	/// </summary>
 	[DataContract]
 	public class WebhookEvent
@@ -28,7 +29,7 @@ namespace Square.Connect.Model
 			=> "X-Square-Signature";
 
 		/// <summary>
-		/// Is a mnew encoding with no BOM, and riases exceptions on bad formats.
+		/// Is a new encoding with no BOM, and riases exceptions on bad formats.
 		/// </summary>
 		public static UTF8Encoding Utf8
 			=> new UTF8Encoding(false, true);
@@ -45,15 +46,26 @@ namespace Square.Connect.Model
 
 		/// <summary>
 		/// This method parses the object from the request, verifies the signature,
-		/// and returns an instance indicating <see cref="IsSquareSignatureValid"/>.
+		/// and returns an instance indicating <see cref="IsSquareSignatureValid"/>. The
+		/// generic acgument is provded to allow constructing a subclass that you choose:
+		/// it must implement <c>new()</c>. The returned <see cref="Id"/> will be set to 
+		/// the <see cref="EntityId"/> if it is null here.
 		/// </summary>
+		/// <typeparam name="T">The specific <see cref="WebhookEvent"/> class that will
+		/// be created and returned.</typeparam>
 		/// <param name="httpRequestMessage">Required.</param>
-		/// <param name="squareSignatureKey">The Squate signature key ---  this will be disposed here
+		/// <param name="squareSignatureKey">The Square signature key: this will be disposed here
 		/// now.</param>
+		/// <param name="webhookEventId">Note that this may be null: this sets the
+		/// <see cref="Id"/> of the returned object; but if null, the Id will be set to the
+		/// parsed <see cref="EntityId"/>. (If whitespace or empty, the property IS set to
+		/// THIS value.)</param>
 		/// <returns>Not null.</returns>
+		/// <exception cref="ArgumentNullException"></exception>
 		public static async Task<T> ParseAsync<T>(
 				HttpRequestMessage httpRequestMessage,
-				SecureString squareSignatureKey)
+				SecureString squareSignatureKey,
+				string webhookEventId = null)
 				where T : WebhookEvent, new()
 		{
 			if (httpRequestMessage == null)
@@ -63,24 +75,35 @@ namespace Square.Connect.Model
 					httpRequestMessage.RequestUri.ToString(),
 					httpRequestMessage.Headers.GetValues(WebhookEvent.SquareSignatureHeaderName)
 							.FirstOrDefault(),
-					squareSignatureKey);
+					squareSignatureKey,
+					webhookEventId);
 		}
 
 		/// <summary>
-		/// This method verifies the signature and returns an instance indicating
-		/// <see cref="IsSquareSignatureValid"/>.
+		/// This method parses the object from the Json request body, verifies the signature,
+		/// and returns an instance indicating <see cref="IsSquareSignatureValid"/>. The
+		/// generic acgument is provded to allow constructing a subclass that you choose:
+		/// it must implement <c>new()</c>.
 		/// </summary>
+		/// <typeparam name="T">The specific <see cref="WebhookEvent"/> class that will
+		/// be created and returned.</typeparam>
 		/// <param name="requestBody">Required.</param>
 		/// <param name="webhookNotificationUrl">Required.</param>
 		/// <param name="squareSignature">Required.</param>
-		/// <param name="squareSignatureKey">The Squate signature key ---  this will be disposed here
+		/// <param name="squareSignatureKey">The Square signature key: this will be disposed here
 		/// now.</param>
+		/// <param name="webhookEventId">Note that this may be null: this sets the
+		/// <see cref="Id"/> of the returned object; but if null, the Id will be set to the
+		/// parsed <see cref="EntityId"/>. (If whitespace or empty, the property IS set to
+		/// THIS value.)</param>
 		/// <returns>Not null.</returns>
+		/// <exception cref="ArgumentNullException"></exception>
 		public static T Parse<T>(
 				string requestBody,
 				string webhookNotificationUrl,
 				string squareSignature,
-				SecureString squareSignatureKey)
+				SecureString squareSignatureKey,
+				string webhookEventId = null)
 				where T : WebhookEvent, new()
 		{
 			dynamic requestData = JsonConvert.DeserializeObject(requestBody);
@@ -90,17 +113,18 @@ namespace Square.Connect.Model
 			string eventType = requestData?.event_type?.ToString();
 			return new T
 			{
-				Id = entityId,
+				Id = webhookEventId ?? entityId,
 				EntityId = entityId,
 				LocationId = locationId,
 				MerchantId = merchantId,
 				EventType = eventType,
 				SquareSignature = squareSignature,
-				IsSquareSignatureValid = WebhookEvent.VerifySignature(
-						requestBody,
-						webhookNotificationUrl,
-						squareSignature,
-						squareSignatureKey),
+				IsSquareSignatureValid
+						= WebhookEvent.VerifySignature(
+								requestBody,
+								webhookNotificationUrl,
+								squareSignature,
+								squareSignatureKey),
 			};
 		}
 
@@ -112,9 +136,10 @@ namespace Square.Connect.Model
 		/// <param name="requestBody">Required.</param>
 		/// <param name="webhookNotificationUrl">Required.</param>
 		/// <param name="squareSignature">Required.</param>
-		/// <param name="squareSignatureKey">The Squate signature key ---  this will be disposed here
+		/// <param name="squareSignatureKey">The Square signature key: this will be disposed here
 		/// now.</param>
 		/// <returns>True if the signatures match.</returns>
+		/// <exception cref="ArgumentNullException"></exception>
 		public static bool VerifySignature(
 				string requestBody,
 				string webhookNotificationUrl,
@@ -137,7 +162,7 @@ namespace Square.Connect.Model
 		}
 
 		/// <summary>
-		/// This is a utility implementation method that computes the message signature for s
+		/// This is a utility implementation method that computes the message signature for a
 		/// Square Webhook event.
 		/// </summary>
 		/// <param name="requestBody">Must be the body of the Webhook.</param>
@@ -145,6 +170,7 @@ namespace Square.Connect.Model
 		/// <param name="squareSignatureKey">The Squate signature key ---  this will be disposed here
 		/// now.</param>
 		/// <returns>Not null.</returns>
+		/// <exception cref="ArgumentNullException"></exception>
 		public static string ComputeSignature(
 				string requestBody,
 				string webhookNotificationUrl,
@@ -205,50 +231,75 @@ namespace Square.Connect.Model
 			IsSquareSignatureValid = isSquareSignatureValid;
 		}
 
+		/// <summary>
+		/// Constructor: sets this <see cref="Id"/> to the <see cref="EntityId"/>.
+		/// </summary>
+		/// <param name="entityId">NOT tested.</param>
+		/// <param name="locationId">NOT tested.</param>
+		/// <param name="merchantId">NOT tested.</param>
+		/// <param name="eventType">NOT tested.</param>
+		/// <param name="squareSignature">NOT tested.</param>
+		/// <param name="isSquareSignatureValid">NOT tested.</param>
+		public WebhookEvent(
+				string entityId,
+				string locationId,
+				string merchantId,
+				string eventType,
+				string squareSignature,
+				bool isSquareSignatureValid)
+				: this(
+						entityId,
+						entityId,
+						locationId,
+						merchantId,
+						eventType,
+						squareSignature,
+						isSquareSignatureValid)
+		{ }
+
 
 		/// <summary>
-		/// Our database Id. This will be set to the <see cref="EntityId"/> in this constructor;
-		/// and could be explicitly set in the database that way to enable better tracking of unique
-		/// events.
+		/// Our database Id. This could explicitly be set to the <see cref="EntityId"/> in
+		/// the constructor.
 		/// </summary>
 		[DataMember(Name = "id")]
-		public string Id { get; private set; }
+		public string Id { get; protected set; }
 
 		/// <summary>
 		/// The Square Entity Id.
 		/// </summary>
 		[DataMember]
-		public string EntityId { get; private set; }
+		public string EntityId { get; protected set; }
 
 		/// <summary>
 		/// Our LocationId.
 		/// </summary>
 		[DataMember]
-		public string LocationId { get; private set; }
+		public string LocationId { get; protected set; }
 
 		/// <summary>
 		/// Our Merchant Id.
 		/// </summary>
 		[DataMember]
-		public string MerchantId { get; private set; }
+		public string MerchantId { get; protected set; }
 
 		/// <summary>
 		/// The Square Webhook type.
 		/// </summary>
 		[DataMember]
-		public string EventType { get; private set; }
+		public string EventType { get; protected set; }
 
 		/// <summary>
 		/// The X-Square-Signature header.
 		/// </summary>
 		[DataMember]
-		public string SquareSignature { get; private set; }
+		public string SquareSignature { get; protected set; }
 
 		/// <summary>
 		/// Set on construction if the <see cref="SquareSignature"/> was validated.
 		/// </summary>
 		[DataMember]
-		public bool IsSquareSignatureValid { get; private set; }
+		public bool IsSquareSignatureValid { get; protected set; }
 
 
 		[SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
@@ -287,6 +338,6 @@ namespace Square.Connect.Model
 					&& (IsSquareSignatureValid == other.IsSquareSignatureValid);
 
 		public override string ToString()
-			=> $"{GetType().Name} {JsonConvert.SerializeObject(this)}";
+			=> $"{GetType().Name} {JsonConvert.SerializeObject(this, Formatting.Indented)}";
 	}
 }
